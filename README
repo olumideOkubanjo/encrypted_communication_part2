@@ -1,7 +1,7 @@
 Name1: Olumide Okubanjo (1573500)
 Name2: Mohamed Ali (1573724) 
 CMPUT 274 Fa17
-Major Assignment 2: Part 1
+Major Assignment 2: Part 2
 
 Included Files:
     encrypt_communication_part1.cpp
@@ -36,14 +36,4 @@ Notes and Assumptions:
 
 Functionality:
 
-    In the program, a person Types a char into their respective serial monitor then the program encrypts the character that is typed and sends it 
-    to the serial on the other PC which then decrypts it and displays it to that serial monitor.
-
-    If the enter key is pressed both the \r and \n characters are encrypted and sent to serial three and the receiving serial monitor reads and decrpyts twice
-    and displays both the \r and \n characters.
-
-    Both PCs in this assignment can send and receive characters.
-
-    The encryption and decryption are used to encrypt the messages from the the sender's PC to Serial 3 where the receiver's Arduino would read
-    from Serial3 and decrypt the message using the same function but with different passed parameters into the function.
     
