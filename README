@@ -1,0 +1,49 @@
+Name1: Olumide Okubanjo (1573500)
+Name2: Mohamed Ali (1573724) 
+CMPUT 274 Fa17
+Major Assignment 2: Part 1
+
+Included Files:
+    encrypt_communication_part1.cpp
+    README
+    Makefile
+
+Accessories:
+    2 Arduino Mega Boards (AMGs)
+    1 Resistor
+    1 Breadborad
+    2 Usb to arduino wires 
+    6 Pin wires
+
+Wiring  instructions:
+    Connect Arduino A to PC A using an USB to arduino cable.
+    Connect Arduino B to PC B using an USB to arduino cable.
+    Arduino A  Pin 13  <--> Resistor <---> Arduino B 5V+
+    Arduino B  Pin 13  <--> Arduino A GND
+    Arduino A  TX3 <---> Arduino B RX3
+    Arduino B  TX3 <---> Arduino A RX3
+    Arduino B  GND <---> Arduino A GND
+    
+
+Running  Instructions:
+    Ensure that the Arduino is using the proper serial port (/dev/ttyACM0) On both computers.
+    While in the directory containing the files encrypt_communication_part1.cpp and the Makefile.
+    Use the command "make upload && serial-mon" to  upload  the  code to the Arduino and open the serial monitor for PC A and PC B
+
+Notes and Assumptions:
+    We asssume that the setup has been done correctly as specified in the description of the assignment.
+    We also assume that the user will not be overloading the buffer with bytes.
+
+Functionality:
+
+    In the program, a person Types a char into their respective serial monitor then the program encrypts the character that is typed and sends it 
+    to the serial on the other PC which then decrypts it and displays it to that serial monitor.
+
+    If the enter key is pressed both the \r and \n characters are encrypted and sent to serial three and the receiving serial monitor reads and decrpyts twice
+    and displays both the \r and \n characters.
+
+    Both PCs in this assignment can send and receive characters.
+
+    The encryption and decryption are used to encrypt the messages from the the sender's PC to Serial 3 where the receiver's Arduino would read
+    from Serial3 and decrypt the message using the same function but with different passed parameters into the function.
+    
