@@ -34,6 +34,112 @@ enum serverState {
   LISTEN, WAITINGFORKEY1,WAITINGFORKEY2, WAITFORACK, DATAEXCHANGESERVER
 };
 
+uint32_t generate_num(int n) {
+	uint32_t answer=0;
+
+	for (int i=0; i<(n-1); i++) {
+		int Val= analogRead(A1);
+		int partial= Val&1;
+		answer= answer ^ partial<<i;
+		Serial.flush();
+		delay(10);
+	}
+	answer = answer ^ (uint32_t)1<<(n-1);
+	return answer;
+}
+
+bool prime_check(uint32_t num) {
+	int z= floor(sqrt(num));
+	int i= 2;
+	int not_p=0;
+	while(i<=z) {
+		if (num%i==0) {
+			not_p++;
+			i++;
+			
+		}
+		if (num%i!=0) {
+			i++;
+		}
+	}
+
+	if (not_p==0) {
+		return true;
+	}
+	if (not_p!=0) {
+		return false;
+	}
+}
+
+uint32_t generate_prime(int n) {
+
+	bool p_check= 0;
+	uint32_t p=0;
+	while (p_check==0) {
+		p= generate_num(n);
+		p_check= prime_check(p);
+	}
+	return p;
+
+}
+
+uint32_t gcd_euclid_fast(uint32_t a, uint32_t b) {
+  while (b > 0) {
+    a %= b;
+
+    // now swap them
+    uint32_t tmp = a;
+    a = b;
+    b = tmp;
+  }
+  return a; // b is 0
+}
+
+uint32_t find_e(uint32_t phi){
+	uint32_t tempNum = generate_num(15);
+	uint32_t one = 1;
+	while(gcd_euclid_fast(tempNum, phi)!=one){
+		tempNum+=one;
+	}
+	return tempNum;
+}
+
+uint32_t find_d(uint32_t e, uint32_t phi) {
+	unsigned long r[40];
+	long s[40];
+	long t[40];
+	unsigned long q;
+	s[0]=1;
+	s[1]=0;
+	t[0]=0;
+	t[1]=1;
+	r[0]= e;
+	r[1]= phi;
+	int i=1;
+	uint32_t d;
+
+	while (r[i]>0) {
+		q = r[i-1]/r[i];          // integer division
+		r[i+1] = (r[i-1] - q*r[i]);  // same as r[i-1] mod r[i]
+		s[i+1] = (s[i-1] - q*s[i]);
+		t[i+1] = (t[i-1] - q*t[i]);
+		i = (i+1);
+	}
+
+
+	if (phi < s[i-1]) {
+		 d = s[i-1]%phi;
+		return d;
+	}else if(s[i-1] < 0) {
+		s[i-1] = s[i-1]%phi;
+		d = s[i-1]+phi;
+		return d;
+	}else if (s[i-1]!= phi ) {
+		d = s[i-1];
+		return d;
+	}
+}
+
 //Main Program
 int main(){
     setup();
@@ -50,18 +156,42 @@ int main(){
     */
     uint32_t d, m ,n ,e;
     if ( digitalRead(13) == HIGH){
-        //Serial.println("Server");
+        Serial.println("Server");
         serverStatebool = true;
-        d = serverPrivateKey;
-        n = serverModulus;
-        e = clientPublicKey; 
-        m = clientModulus;
+        uint32_t one = 1;
+        uint32_t p = generate_prime(15);
+        uint32_t q = generate_prime(16);
+        n = (p) * (q);
+        uint32_t phi= (p-one)*(q-one);
+        e = find_e(phi);
+        // Serial.print("Genertaed e :");
+        Serial.println(e);
+        d = find_d(e,phi);
+
+        Serial.print("This is d: ");
+	    Serial.println(d);
+        Serial.print("This is e: ");
+	    Serial.println(e);
+        Serial.print("This is phi: ");
+	    Serial.println(phi);
     }else{
-        // Serial.println("Client");
-        d = clientPrivateKey;
-        n = clientModulus;
-        e = serverPublicKey; 
-        m = serverModulus;
+        Serial.println("Client");
+        uint32_t one = 1;
+        uint32_t p = generate_prime(15);
+        uint32_t q = generate_prime(16);
+        n = (p) * (q);
+        uint32_t phi= (p-one)*(q-one);
+        e = find_e(phi);
+        // Serial.print("Genertaed e :");
+        Serial.println(e);
+        d = find_d(e,phi);
+
+        Serial.print("This is d: ");
+	    Serial.println(d);
+        Serial.print("This is e: ");
+	    Serial.println(e);
+        Serial.print("This is phi: ");
+	    Serial.println(phi);
     }
 
     //HandShake Loop
@@ -80,13 +210,13 @@ int main(){
             if(serverState==WAITINGFORKEY1){
                 // Serial.println("Waiting for key");
                 if(wait_on_serial3(8,1000)){
-                    clientPublicKey = uint32_from_serial3();
-                    clientModulus = uint32_from_serial3();
-
+                    uint32_t ecl = uint32_from_serial3();
+                    m = uint32_from_serial3();
                     Serial3.write(A);
-                    uint32_to_serial3(serverPublicKey);
-                    uint32_to_serial3(serverModulus);
+                    uint32_to_serial3(e);
+                    uint32_to_serial3(n);
                     serverState=WAITFORACK;
+                    e = ecl;
                 }else{
                     serverState=LISTEN;
                 }
@@ -109,8 +239,8 @@ int main(){
             }else if(serverState==WAITINGFORKEY2){
                 // Serial.println("Waiting for key 2");
                 if(wait_on_serial3(8,1000)){
-                    clientPublicKey = uint32_from_serial3();
-                    clientModulus = uint32_from_serial3();
+                    e = uint32_from_serial3();
+                    m = uint32_from_serial3();
                     serverState=WAITFORACK;
                 }else{
                     serverState=LISTEN;
@@ -123,8 +253,8 @@ int main(){
             if(clientState==START){
                 // Serial.println("Starting");
                 Serial3.write(C);
-                uint32_to_serial3(clientPublicKey);
-                uint32_to_serial3(clientModulus);
+                uint32_to_serial3(e);
+                uint32_to_serial3(n);
                 clientState = WAITINGFORACK;
 
             }
@@ -133,11 +263,8 @@ int main(){
                 if(wait_on_serial3(1,1000)){
                     if(Serial3.read()==A){
                         if(wait_on_serial3(8,1000)){
-                            serverPublicKey = uint32_from_serial3();
-                            serverModulus = uint32_from_serial3();
-                            // for(int i =0; i < 50; i++){
-                            //     Serial3.write(A);
-                            // }
+                            e = uint32_from_serial3();
+                            m = uint32_from_serial3();
                             Serial3.write(A);
                             clientState = DATAEXCHANGECLIENT;
                             // Serial.println("DATA EXCHANGE");
@@ -154,6 +281,14 @@ int main(){
     }
 
     Serial.println("CONNECTED Enjoy Chatting: ");
+	Serial.println("This is d: ");
+	Serial.println(d);
+	Serial.println("This is n: ");
+	Serial.println(n);
+	Serial.println("This is e: ");
+	Serial.println(e);
+	Serial.println("This is m: ");
+	Serial.println(m);
 
     //Chat  Loop
     while(true){

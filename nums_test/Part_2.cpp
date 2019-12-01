@@ -97,16 +97,23 @@ uint32_t find_d(uint32_t e, uint32_t phi) {
 		t[i+1] = (t[i-1] - q*t[i]);
 		i = (i+1);
 	}
-
+	Serial.print("s[i-1] : ");
 	Serial.println(s[i-1]);
 
-	if (s[i-1]> phi) {
-		return d= s[i-1]%phi;
-	}else if(s[i-1]< phi) {
+	if(s[i-1] < 0) {
 		s[i-1] = s[i-1]%phi;
-		return d = s[i-1]+phi;
-	}else if (s[i-1]!= phi ) {
-		return d = s[i-1];
+		Serial.print("First if :");
+		Serial.println(s[i-1]);
+		d = s[i-1]+phi;
+		return d;
+	}else if(phi < s[i-1]) {
+		Serial.print("Second if :");
+		 d = s[i-1]%phi;
+		return d;
+	}else if ((s[i-1] > 0) && (s[i-1]<phi) ) {
+		Serial.print("Third OF if :");
+		d = s[i-1];
+		return d;
 	}
 }
 
