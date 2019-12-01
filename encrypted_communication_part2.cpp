@@ -2,7 +2,7 @@
 Name1: Olumide Okubanjo (1573500)
 Name2: Mohamed Ali (1573724) 
 CMPUT 274 Fa17
-Major Assignment 2: Part 1
+Major Assignment 2: Part 2
 */
 
 #include <Arduino.h>
@@ -15,6 +15,7 @@ uint32_t mulmod(uint32_t a, uint32_t b, uint32_t m);
 uint32_t powmod(uint32_t x, uint32_t pow, uint32_t m);
 uint32_t uint32_from_serial3();
 void uint32_to_serial3(uint32_t num);
+bool wait_on_serial3( uint8_t nbytes , long timeout );
 
 //Global Constants
 uint32_t serverPublicKey = 7;
@@ -24,14 +25,33 @@ uint32_t clientPublicKey = 11;
 uint32_t clientPrivateKey = 38291;
 uint32_t clientModulus = 84823;
 
+//Enum States
+enum clientState {
+  START, WAITINGFORACK, DATAEXCHANGECLIENT
+};
+
+enum serverState {
+  LISTEN, WAITINGFORKEY1,WAITINGFORKEY2, WAITFORACK, DATAEXCHANGESERVER
+};
+
 //Main Program
 int main(){
     setup();
+    bool serverStatebool = false;
+    char C = 'C';
+    char A = 'A';
 
+    Serial.println("Connecting...");
     //Determining the correct variables based on client or server status
+    /*
+    e - arduino's public key
+    d - arduino's private key
+    n - arduino's modulus
+    */
     uint32_t d, m ,n ,e;
     if ( digitalRead(13) == HIGH){
         //Serial.println("Server");
+        serverStatebool = true;
         d = serverPrivateKey;
         n = serverModulus;
         e = clientPublicKey; 
@@ -44,7 +64,98 @@ int main(){
         m = serverModulus;
     }
 
-    //Main Loop
+    //HandShake Loop
+    //Handshaking Code
+    if(serverStatebool){
+        serverState serverState = LISTEN;
+        while(serverState!=DATAEXCHANGESERVER){
+            if(serverState==LISTEN){
+                // Serial.println("Listening");
+                if(wait_on_serial3(1,1000)){
+                    if(Serial3.read()==C){
+                        serverState = WAITINGFORKEY1;
+                    }
+                }
+            }
+            if(serverState==WAITINGFORKEY1){
+                // Serial.println("Waiting for key");
+                if(wait_on_serial3(8,1000)){
+                    clientPublicKey = uint32_from_serial3();
+                    clientModulus = uint32_from_serial3();
+
+                    Serial3.write(A);
+                    uint32_to_serial3(serverPublicKey);
+                    uint32_to_serial3(serverModulus);
+                    serverState=WAITFORACK;
+                }else{
+                    serverState=LISTEN;
+                }
+            }else if(serverState==WAITFORACK){
+                // Serial.println("Waiting for ACK");
+                if(wait_on_serial3(1,1000)){
+                    // Serial.println("Char Received");
+                    char tempRead = Serial3.read();
+                    if(tempRead==C){
+                        // Serial.println("Reading the C");
+                        serverState=WAITINGFORKEY2;
+                    }
+                    if(tempRead==A){
+                        // Serial.println("Reading the A");
+                        serverState=DATAEXCHANGESERVER;
+                    }
+                }else{
+                    serverState=LISTEN;
+                }
+            }else if(serverState==WAITINGFORKEY2){
+                // Serial.println("Waiting for key 2");
+                if(wait_on_serial3(8,1000)){
+                    clientPublicKey = uint32_from_serial3();
+                    clientModulus = uint32_from_serial3();
+                    serverState=WAITFORACK;
+                }else{
+                    serverState=LISTEN;
+                }
+            }
+        }
+    }else{
+        clientState clientState = START;
+        while(clientState!=DATAEXCHANGECLIENT){
+            if(clientState==START){
+                // Serial.println("Starting");
+                Serial3.write(C);
+                uint32_to_serial3(clientPublicKey);
+                uint32_to_serial3(clientModulus);
+                clientState = WAITINGFORACK;
+
+            }
+            if(clientState==WAITINGFORACK){
+                // Serial.println("Waiting for ack");
+                if(wait_on_serial3(1,1000)){
+                    if(Serial3.read()==A){
+                        if(wait_on_serial3(8,1000)){
+                            serverPublicKey = uint32_from_serial3();
+                            serverModulus = uint32_from_serial3();
+                            // for(int i =0; i < 50; i++){
+                            //     Serial3.write(A);
+                            // }
+                            Serial3.write(A);
+                            clientState = DATAEXCHANGECLIENT;
+                            // Serial.println("DATA EXCHANGE");
+                        }else{
+                            clientState=START;
+                        }
+                    }
+                }else{
+                    clientState=START;
+                }
+            }
+        }
+
+    }
+
+    Serial.println("CONNECTED Enjoy Chatting: ");
+
+    //Chat  Loop
     while(true){
 
         //Typing on own serial monitor
@@ -185,3 +296,20 @@ uint32_t uint32_from_serial3() {
     return num ;
 }
 
+
+/* * Waits for a certain number of bytes on Serial3 or timeout
+* @param nbytes : the number of bytes we want
+* @param timeout : timeout period ( ms ) ; specifying a negative number
+*
+turns off timeouts ( the function waits indefinitely
+*
+if timeouts are turned off ) .
+* @return True if the required number of bytes have arrived .
+*/
+bool wait_on_serial3( uint8_t nbytes , long timeout ) {
+    unsigned long deadline = millis() + timeout; // wraparound not a problem
+    while( Serial3.available() < nbytes && (timeout<0 || millis()< deadline) ){
+        delay (1); // be nice , no busy loop
+    }
+    return Serial3.available()>=nbytes ;
+}
