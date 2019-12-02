@@ -78,9 +78,9 @@ uint32_t find_e(uint32_t phi){
 
 uint32_t find_d(uint32_t e, uint32_t phi) {
 	unsigned long r[40];
-	long s[40];
-	long t[40];
-	unsigned long q;
+	int32_t s[40];
+	int32_t t[40];
+	long q;
 	s[0]=1;
 	s[1]=0;
 	t[0]=0;
@@ -101,11 +101,10 @@ uint32_t find_d(uint32_t e, uint32_t phi) {
 	Serial.println(s[i-1]);
 
 	if(s[i-1] < 0) {
-		s[i-1] = s[i-1]%phi;
-		Serial.print("First if :");
-		Serial.println(s[i-1]);
-		d = s[i-1]+phi;
-		return d;
+		while(s[i-1]<0){
+			s[i-1]+=phi;
+		}
+		return d = s[i-1];
 	}else if(phi < s[i-1]) {
 		Serial.print("Second if :");
 		 d = s[i-1]%phi;
@@ -148,6 +147,8 @@ int main() {
 	uint32_t d = find_d(e,phi);
 	Serial.println("This is d: ");
 	Serial.println(d);
+
+
 	Serial.flush();
 
 	return 0;

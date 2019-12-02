@@ -5,27 +5,26 @@ CMPUT 274 Fa17
 Major Assignment 2: Part 2
 */
 
+//Arduino library
 #include <Arduino.h>
 
 //Forward Declaration of Functions in order
 void setup();
+uint32_t generate_num(int n);
+bool prime_check(uint32_t num);
+uint32_t generate_prime(int n);
+uint32_t find_e(uint32_t phi);
+uint32_t find_d(uint32_t e, uint32_t phi);
 uint32_t encrypt(uint32_t x, uint32_t e, uint32_t m);
 uint32_t decrypt(uint32_t x, uint32_t d, uint32_t n);
 uint32_t mulmod(uint32_t a, uint32_t b, uint32_t m);
+uint32_t gcd_euclid_fast(uint32_t a, uint32_t b);
 uint32_t powmod(uint32_t x, uint32_t pow, uint32_t m);
 uint32_t uint32_from_serial3();
 void uint32_to_serial3(uint32_t num);
 bool wait_on_serial3( uint8_t nbytes , long timeout );
 
-//Global Constants
-uint32_t serverPublicKey = 7;
-uint32_t serverPrivateKey = 27103;
-uint32_t serverModulus = 95477;
-uint32_t clientPublicKey = 11;
-uint32_t clientPrivateKey = 38291;
-uint32_t clientModulus = 84823;
-
-//Enum States
+//Enum States for state3 machine implementation
 enum clientState {
   START, WAITINGFORACK, DATAEXCHANGECLIENT
 };
@@ -34,120 +33,17 @@ enum serverState {
   LISTEN, WAITINGFORKEY1,WAITINGFORKEY2, WAITFORACK, DATAEXCHANGESERVER
 };
 
-uint32_t generate_num(int n) {
-	uint32_t answer=0;
-
-	for (int i=0; i<(n-1); i++) {
-		int Val= analogRead(A1);
-		int partial= Val&1;
-		answer= answer ^ partial<<i;
-		Serial.flush();
-		delay(10);
-	}
-	answer = answer ^ (uint32_t)1<<(n-1);
-	return answer;
-}
-
-bool prime_check(uint32_t num) {
-	int z= floor(sqrt(num));
-	int i= 2;
-	int not_p=0;
-	while(i<=z) {
-		if (num%i==0) {
-			not_p++;
-			i++;
-			
-		}
-		if (num%i!=0) {
-			i++;
-		}
-	}
-
-	if (not_p==0) {
-		return true;
-	}
-	if (not_p!=0) {
-		return false;
-	}
-}
-
-uint32_t generate_prime(int n) {
-
-	bool p_check= 0;
-	uint32_t p=0;
-	while (p_check==0) {
-		p= generate_num(n);
-		p_check= prime_check(p);
-	}
-	return p;
-
-}
-
-uint32_t gcd_euclid_fast(uint32_t a, uint32_t b) {
-  while (b > 0) {
-    a %= b;
-
-    // now swap them
-    uint32_t tmp = a;
-    a = b;
-    b = tmp;
-  }
-  return a; // b is 0
-}
-
-uint32_t find_e(uint32_t phi){
-	uint32_t tempNum = generate_num(15);
-	uint32_t one = 1;
-	while(gcd_euclid_fast(tempNum, phi)!=one){
-		tempNum+=one;
-	}
-	return tempNum;
-}
-
-uint32_t find_d(uint32_t e, uint32_t phi) {
-	unsigned long r[40];
-	long s[40];
-	long t[40];
-	unsigned long q;
-	s[0]=1;
-	s[1]=0;
-	t[0]=0;
-	t[1]=1;
-	r[0]= e;
-	r[1]= phi;
-	int i=1;
-	uint32_t d;
-
-	while (r[i]>0) {
-		q = r[i-1]/r[i];          // integer division
-		r[i+1] = (r[i-1] - q*r[i]);  // same as r[i-1] mod r[i]
-		s[i+1] = (s[i-1] - q*s[i]);
-		t[i+1] = (t[i-1] - q*t[i]);
-		i = (i+1);
-	}
-
-
-	if (phi < s[i-1]) {
-		 d = s[i-1]%phi;
-		return d;
-	}else if(s[i-1] < 0) {
-		s[i-1] = s[i-1]%phi;
-		d = s[i-1]+phi;
-		return d;
-	}else if (s[i-1]!= phi ) {
-		d = s[i-1];
-		return d;
-	}
-}
-
 //Main Program
 int main(){
     setup();
+
+    //Nessesary Variables
     bool serverStatebool = false;
     char C = 'C';
     char A = 'A';
 
-    Serial.println("Connecting...");
+    Serial.println("CONNECTING to arduino...");
+
     //Determining the correct variables based on client or server status
     /*
     e - arduino's public key
@@ -156,7 +52,7 @@ int main(){
     */
     uint32_t d, m ,n ,e;
     if ( digitalRead(13) == HIGH){
-        Serial.println("Server");
+        // Serial.println("Server");
         serverStatebool = true;
         uint32_t one = 1;
         uint32_t p = generate_prime(15);
@@ -164,43 +60,23 @@ int main(){
         n = (p) * (q);
         uint32_t phi= (p-one)*(q-one);
         e = find_e(phi);
-        // Serial.print("Genertaed e :");
-        Serial.println(e);
         d = find_d(e,phi);
-
-        Serial.print("This is d: ");
-	    Serial.println(d);
-        Serial.print("This is e: ");
-	    Serial.println(e);
-        Serial.print("This is phi: ");
-	    Serial.println(phi);
     }else{
-        Serial.println("Client");
+        // Serial.println("Client");
         uint32_t one = 1;
         uint32_t p = generate_prime(15);
         uint32_t q = generate_prime(16);
         n = (p) * (q);
         uint32_t phi= (p-one)*(q-one);
         e = find_e(phi);
-        // Serial.print("Genertaed e :");
-        Serial.println(e);
         d = find_d(e,phi);
-
-        Serial.print("This is d: ");
-	    Serial.println(d);
-        Serial.print("This is e: ");
-	    Serial.println(e);
-        Serial.print("This is phi: ");
-	    Serial.println(phi);
     }
 
-    //HandShake Loop
-    //Handshaking Code
+    //Dataexchange loop
     if(serverStatebool){
         serverState serverState = LISTEN;
         while(serverState!=DATAEXCHANGESERVER){
             if(serverState==LISTEN){
-                // Serial.println("Listening");
                 if(wait_on_serial3(1,1000)){
                     if(Serial3.read()==C){
                         serverState = WAITINGFORKEY1;
@@ -208,7 +84,6 @@ int main(){
                 }
             }
             if(serverState==WAITINGFORKEY1){
-                // Serial.println("Waiting for key");
                 if(wait_on_serial3(8,1000)){
                     uint32_t ecl = uint32_from_serial3();
                     m = uint32_from_serial3();
@@ -221,23 +96,18 @@ int main(){
                     serverState=LISTEN;
                 }
             }else if(serverState==WAITFORACK){
-                // Serial.println("Waiting for ACK");
                 if(wait_on_serial3(1,1000)){
-                    // Serial.println("Char Received");
                     char tempRead = Serial3.read();
                     if(tempRead==C){
-                        // Serial.println("Reading the C");
                         serverState=WAITINGFORKEY2;
                     }
                     if(tempRead==A){
-                        // Serial.println("Reading the A");
                         serverState=DATAEXCHANGESERVER;
                     }
                 }else{
                     serverState=LISTEN;
                 }
             }else if(serverState==WAITINGFORKEY2){
-                // Serial.println("Waiting for key 2");
                 if(wait_on_serial3(8,1000)){
                     e = uint32_from_serial3();
                     m = uint32_from_serial3();
@@ -251,7 +121,6 @@ int main(){
         clientState clientState = START;
         while(clientState!=DATAEXCHANGECLIENT){
             if(clientState==START){
-                // Serial.println("Starting");
                 Serial3.write(C);
                 uint32_to_serial3(e);
                 uint32_to_serial3(n);
@@ -259,7 +128,6 @@ int main(){
 
             }
             if(clientState==WAITINGFORACK){
-                // Serial.println("Waiting for ack");
                 if(wait_on_serial3(1,1000)){
                     if(Serial3.read()==A){
                         if(wait_on_serial3(8,1000)){
@@ -267,7 +135,6 @@ int main(){
                             m = uint32_from_serial3();
                             Serial3.write(A);
                             clientState = DATAEXCHANGECLIENT;
-                            // Serial.println("DATA EXCHANGE");
                         }else{
                             clientState=START;
                         }
@@ -281,18 +148,9 @@ int main(){
     }
 
     Serial.println("CONNECTED Enjoy Chatting: ");
-	Serial.println("This is d: ");
-	Serial.println(d);
-	Serial.println("This is n: ");
-	Serial.println(n);
-	Serial.println("This is e: ");
-	Serial.println(e);
-	Serial.println("This is m: ");
-	Serial.println(m);
 
     //Chat  Loop
     while(true){
-
         //Typing on own serial monitor
         if (Serial.available() > 0) {
             // Read and display the entered char
@@ -358,6 +216,100 @@ void setup(){
     pinMode(13, INPUT);    
 }
 
+uint32_t generate_num(int n) {
+	uint32_t answer=0;
+
+	for (int i=0; i<(n-1); i++) {
+		int Val= analogRead(A1);
+		int partial= Val&1;
+		answer= answer ^ partial<<i;
+		Serial.flush();
+		delay(10);
+	}
+	answer = answer ^ (uint32_t)1<<(n-1);
+	return answer;
+}
+
+bool prime_check(uint32_t num) {
+	int z= floor(sqrt(num));
+	int i= 2;
+	int not_p=0;
+	while(i<=z) {
+		if (num%i==0) {
+			not_p++;
+			i++;
+			
+		}
+		if (num%i!=0) {
+			i++;
+		}
+	}
+
+	if (not_p==0) {
+		return true;
+	}
+	if (not_p!=0) {
+		return false;
+	}
+}
+
+uint32_t generate_prime(int n) {
+
+	bool p_check= 0;
+	uint32_t p=0;
+	while (p_check==0) {
+		p= generate_num(n);
+		p_check= prime_check(p);
+	}
+	return p;
+
+}
+
+uint32_t find_e(uint32_t phi){
+	uint32_t tempNum = generate_num(15);
+	uint32_t one = 1;
+	while(gcd_euclid_fast(tempNum, phi)!=one){
+		tempNum+=one;
+	}
+	return tempNum;
+}
+
+uint32_t find_d(uint32_t e, uint32_t phi) {
+	long r[40];
+	int32_t s[40];
+	int32_t t[40];
+	long q;
+	s[0]=1;
+	s[1]=0;
+	t[0]=0;
+	t[1]=1;
+	r[0]= e;
+	r[1]= phi;
+	int i=1;
+	uint32_t d;
+
+	while (r[i]>0) {
+		q = r[i-1]/r[i];          // integer division
+		r[i+1] = (r[i-1] - q*r[i]);  // same as r[i-1] mod r[i]
+		s[i+1] = (s[i-1] - q*s[i]);
+		t[i+1] = (t[i-1] - q*t[i]);
+		i = (i+1);
+	}
+
+	if(s[i-1] < 0) {
+		while(s[i-1]<0){
+			s[i-1]+=phi;
+		}
+		return d = s[i-1];
+	}else if(phi < s[i-1]) {
+		d = s[i-1]%phi;
+		return d;
+	}else if ((s[i-1] > 0) && (s[i-1]<phi) ) {
+		d = s[i-1];
+		return d;
+	}
+}
+
 uint32_t encrypt(uint32_t c, uint32_t e, uint32_t m){
     //Using powmod and mulmod to encrpyt the character
     return powmod(c, e, m);
@@ -392,8 +344,20 @@ uint32_t mulmod(uint32_t a, uint32_t b, uint32_t m){
     return ans ;
 }
 
-// computes the value x^pow mod m ("x to the power of pow" mod m)
-//(CODE PROVIDED BY CLASS)
+//ALL BELOW CODE OF PROVIDED BY CLASS
+//computes the value x^pow mod m ("x to the power of pow" mod m)
+uint32_t gcd_euclid_fast(uint32_t a, uint32_t b) {
+  while (b > 0) {
+    a %= b;
+
+    // now swap them
+    uint32_t tmp = a;
+    a = b;
+    b = tmp;
+  }
+  return a; // b is 0
+}
+
 uint32_t powmod(uint32_t x, uint32_t pow, uint32_t m) {
   // uint32 Valribales
   uint32_t ans = 1;
@@ -430,7 +394,6 @@ uint32_t uint32_from_serial3() {
     num = num | (( uint32_t ) Serial3.read() ) << 24 ;
     return num ;
 }
-
 
 /* * Waits for a certain number of bytes on Serial3 or timeout
 * @param nbytes : the number of bytes we want
