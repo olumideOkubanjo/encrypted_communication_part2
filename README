@@ -1,10 +1,10 @@
 Name1: Olumide Okubanjo (1573500)
 Name2: Mohamed Ali (1573724) 
-CMPUT 274 Fa17
+CMPUT 274 Fa19
 Major Assignment 2: Part 2
 
 Included Files:
-    encrypt_communication_part12cpp
+    encrypt_communication_part2cpp
     README
     Makefile
 
@@ -27,13 +27,17 @@ Wiring  instructions:
 
 Running  Instructions:
     Ensure that the Arduino is using the proper serial port (/dev/ttyACM0) On both computers.
-    While in the directory containing the files encrypt_communication_part1.cpp and the Makefile.
-    Use the command "make upload && serial-mon" to  upload  the  code to the Arduino and open the serial monitor for PC A and PC B
+    While in the directory containing the files encrypt_communication_part2.cpp and the Makefile.
+    Use the command "make upload && serial-mon" to  upload  the  code to the Arduino and open the serial monitor for PC A and PC B.
 
 Notes and Assumptions:
     We asssume that the setup has been done correctly as specified in the description of the assignment.
     We also assume that the user will not be overloading the buffer with bytes.
 
 Functionality:
+    This program is an optimization of the first program. It better refects the RSA excryption scheme as it is used normally.
+	This program generates keys based on an algorithm then sends those keys over the serial connection to the other arduino. This happends siultaneously on both arduinos.
+	After the hadshake has been completed and the variables have been swapped between the arduinos it. Then procededs to the chat program using the generated and received variables.
+	Even though this chat runs a bit slower than the previous version it is much more secure in terms of communication.
 
     

@@ -1,7 +1,7 @@
 /*
 Name1: Olumide Okubanjo (1573500)
 Name2: Mohamed Ali (1573724) 
-CMPUT 274 Fa17
+CMPUT 274 Fa19
 Major Assignment 2: Part 2
 */
 
@@ -52,7 +52,7 @@ int main(){
     */
     uint32_t d, m ,n ,e;
     if ( digitalRead(13) == HIGH){
-        // Serial.println("Server");
+        Serial.println("Server");
         serverStatebool = true;
         uint32_t one = 1;
         uint32_t p = generate_prime(15);
@@ -62,7 +62,7 @@ int main(){
         e = find_e(phi);
         d = find_d(e,phi);
     }else{
-        // Serial.println("Client");
+        Serial.println("Client");
         uint32_t one = 1;
         uint32_t p = generate_prime(15);
         uint32_t q = generate_prime(16);
@@ -76,6 +76,7 @@ int main(){
     if(serverStatebool){
         serverState serverState = LISTEN;
         while(serverState!=DATAEXCHANGESERVER){
+            // Serial.println("Listening...");
             if(serverState==LISTEN){
                 if(wait_on_serial3(1,1000)){
                     if(Serial3.read()==C){
@@ -120,6 +121,7 @@ int main(){
     }else{
         clientState clientState = START;
         while(clientState!=DATAEXCHANGECLIENT){
+            // Serial.println("Starting...");
             if(clientState==START){
                 Serial3.write(C);
                 uint32_to_serial3(e);
@@ -189,7 +191,7 @@ int main(){
 
                 //Reads the new line char , decrypt and displays it
                 uint32_t newlinechar = uint32_from_serial3();
-                Serial.write(decrypt(newlinechar, d , n ));
+                Serial.write(decrypt( newlinechar, d , n ));
                 
             }else{
                 //Display it
@@ -199,6 +201,7 @@ int main(){
         }  
     
     }
+    
     Serial.flush();
     return 0;
 }
@@ -411,3 +414,4 @@ bool wait_on_serial3( uint8_t nbytes , long timeout ) {
     }
     return Serial3.available()>=nbytes ;
 }
+
